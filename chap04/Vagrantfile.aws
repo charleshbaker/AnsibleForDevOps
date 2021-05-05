@@ -1,0 +1,51 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+VAGRANTFILE_API_VERSION = "2"
+# Require the AWS provider plugin
+require 'vagrant-aws'
+
+class Hash
+  def slice(*keep_keys)
+    h = {}
+    keep_keys.each { |key| h[key] = fetch(key) if has_key?(key) }
+    h
+  end unless Hash.method_defined?(:slice)
+  def except(*less_keys)
+    slice(*keys - less_keys)
+  end unless Hash.method_defined?(:except)
+end
+
+
+Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
+  config.vm.box = 'aws'
+  config.vm.hostname = 'nodejs.test'
+
+  # Specify configuration of AWS provider
+  config.vm.provider 'aws' do |aws, override|
+
+
+  # Read AWS authentication information from environment variables
+  aws.access_key_id = ENV['AWS_ACCESS_KEY_ID']
+  aws.secret_access_key = ENV['AWS_SECRET_ACCESS_KEY']
+
+  # Specify SSH keypair to use
+  aws.keypair_name = 'KipBaker01'
+
+  # Specify region, AMI ID, Instance and security group
+  aws.region = 'us-east-1'
+  aws.ami = 'ami-0affd4508a5d2481b'
+  aws.instance_type = 't2.micro'
+  aws.security_groups = ['launch-wizard-3']
+
+  # Specify username and private key path
+  override.ssh.username = 'centos'
+  override.ssh.private_key_path = '~/.ssh/KipBaker01.pem'
+
+  end
+
+  # Ansible provisioner.
+  config.vm.provision :ansible do |ansible|
+    ansible.playbook = "provisioning/playbook.yml"
+  end
+end
